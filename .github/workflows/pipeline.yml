@@ -31,6 +31,12 @@ jobs:
       - name: Run tests
         run: npm run test -- --runInBand --forceExit
 
+      - name: Run static code analysis
+        run: npm run lint
+
+      - name: Run code coverage
+        run: npm run test:coverage
+
       - name: Build Docker image locally
         run: docker build -t $ECR_REPOSITORY:${{ github.sha }} .
 
