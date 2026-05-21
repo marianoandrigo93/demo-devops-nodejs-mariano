@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-devops-nodejs
+  namespace: demo-devops
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo-devops-nodejs
+  template:
+    metadata:
+      labels:
+        app: demo-devops-nodejs
+    spec:
+      containers:
+        - name: demo-devops-nodejs
+          image: demo-devops-nodejs:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: demo-devops-config
+            - secretRef:
+                name: demo-devops-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/users
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/users
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
