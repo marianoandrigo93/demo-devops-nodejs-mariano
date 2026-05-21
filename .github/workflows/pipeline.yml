@@ -24,7 +24,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm run test
+        run: npm run test -- --runInBand --forceExit
 
       - name: Build Docker image
         run: docker build -t demo-devops-nodejs:${{ github.sha }} .
