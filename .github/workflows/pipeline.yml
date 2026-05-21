@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -6,8 +6,13 @@ on:
       - main
   pull_request:
 
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY: demo-devops-nodejs
+
 jobs:
-  test-and-build:
+  test-build-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,12 +31,12 @@ jobs:
       - name: Run tests
         run: npm run test -- --runInBand --forceExit
 
-      - name: Build Docker image
-        run: docker build -t demo-devops-nodejs:${{ github.sha }} .
+      - name: Build Docker image locally
+        run: docker build -t $ECR_REPOSITORY:${{ github.sha }} .
 
       - name: Run Docker container
         run: |
-          docker run -d --name demo-devops-nodejs -p 8000:8000 demo-devops-nodejs:${{ github.sha }}
+          docker run -d --name demo-devops-nodejs -p 8000:8000 $ECR_REPOSITORY:${{ github.sha }}
           sleep 10
 
       - name: Test API endpoint
@@ -40,3 +45,27 @@ jobs:
       - name: Stop container
         if: always()
         run: docker rm -f demo-devops-nodejs || true
+
+      - name: Configure AWS credentials
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: github.event_name == 'push'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag Docker image for ECR
+        if: github.event_name == 'push'
+        run: |
+          docker tag $ECR_REPOSITORY:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
+          docker tag $ECR_REPOSITORY:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+      - name: Push Docker image to ECR
+        if: github.event_name == 'push'
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
