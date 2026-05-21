@@ -1,142 +1,191 @@
-# Demo Devops NodeJs
+# Demo DevOps Node.js - Mariano Andrigo
 
-This is a simple application to be used in the technical test of DevOps.
+Proyecto realizado como solución para la prueba técnica DevOps.
 
-## Getting Started
+## Tecnologías utilizadas
 
-### Prerequisites
+- Node.js
+- Docker
+- Kubernetes
+- Minikube
+- GitHub Actions
+- Terraform
+- AWS ECR
 
-- Node.js 18.15.0
+---
 
-### Installation
+# Arquitectura
 
-Clone this repo.
+```mermaid
+flowchart LR
+
+A[GitHub Push] --> B[GitHub Actions CI/CD]
+
+B --> C[Unit Tests]
+B --> D[Static Code Analysis]
+B --> E[Code Coverage]
+B --> F[Docker Build]
+
+F --> G[AWS ECR]
+
+G --> H[Kubernetes Validation]
+
+H --> I[Minikube Cluster]
+
+I --> J[Node.js Application]
+```
+
+---
+
+# Pipeline CI/CD
+
+El pipeline implementado con GitHub Actions incluye:
+
+- Code Build
+- Unit Tests
+- Static Code Analysis (ESLint)
+- Code Coverage
+- Docker Build
+- Docker Push hacia AWS ECR
+
+Archivo del pipeline:
 
 ```bash
-git clone https://bitbucket.org/devsu/demo-devops-nodejs.git
+.github/workflows/pipeline.yml
 ```
 
-Install dependencies.
+---
+
+# Infraestructura como Código
+
+Se utilizó Terraform para crear el repositorio ECR en AWS.
+
+Ubicación:
 
 ```bash
-npm i
+terraform/ecr
 ```
 
-### Database
-
-The database is generated as a file in the main path when the project is first run, and its name is `dev.sqlite`.
-
-Consider giving access permissions to the file for proper functioning.
-
-## Usage
-
-To run tests you can use this command.
+Comando utilizado:
 
 ```bash
-npm run test
+terraform init
+terraform apply
 ```
 
-To run locally the project you can use this command.
+---
+
+# Docker
+
+## Build local
 
 ```bash
-npm run start
+docker build -t demo-devops-nodejs:local .
 ```
 
-Open http://localhost:8000/api/users with your browser to see the result.
-
-### Features
-
-These services can perform,
-
-#### Create User
-
-To create a user, the endpoint **/api/users** must be consumed with the following parameters:
+## Run local
 
 ```bash
-  Method: POST
+docker run -p 8000:8000 demo-devops-nodejs:local
 ```
 
-```json
-{
-    "dni": "dni",
-    "name": "name"
-}
-```
+---
 
-If the response is successful, the service will return an HTTP Status 200 and a message with the following structure:
+# Kubernetes
 
-```json
-{
-    "id": 1,
-    "dni": "dni",
-    "name": "name"
-}
-```
+Se creó el despliegue utilizando Minikube y Kubernetes.
 
-If the response is unsuccessful, we will receive status 400 and the following message:
+Recursos implementados:
 
-```json
-{
-    "error": "error"
-}
-```
+- Namespace
+- Deployment
+- Service
+- ConfigMap
+- Secret
+- Horizontal Pod Autoscaler
 
-#### Get Users
-
-To get all users, the endpoint **/api/users** must be consumed with the following parameters:
+Ubicación:
 
 ```bash
-  Method: GET
+k8s/
 ```
 
-If the response is successful, the service will return an HTTP Status 200 and a message with the following structure:
-
-```json
-[
-    {
-        "id": 1,
-        "dni": "dni",
-        "name": "name"
-    }
-]
-```
-
-#### Get User
-
-To get an user, the endpoint **/api/users/<id>** must be consumed with the following parameters:
+## Aplicar manifiestos
 
 ```bash
-  Method: GET
+kubectl apply -f k8s/
 ```
 
-If the response is successful, the service will return an HTTP Status 200 and a message with the following structure:
+## Ver recursos
 
-```json
-{
-    "id": 1,
-    "dni": "dni",
-    "name": "name"
-}
+```bash
+kubectl get all -n demo-devops
 ```
 
-If the user id does not exist, we will receive status 404 and the following message:
+---
 
-```json
-{
-    "error": "User not found: <id>"
-}
+# Validación local
+
+## Crear usuario
+
+```bash
+curl.exe -X POST http://localhost:8000/api/users `
+-H "Content-Type: application/json" `
+-d '{\"dni\":\"37376236\",\"name\":\"Mariano-Andrigo\"}'
 ```
 
-If the response is unsuccessful, we will receive status 400 and the following message:
+## Obtener usuarios
 
-```json
-{
-    "errors": [
-        "error"
-    ]
-}
+```bash
+curl.exe http://localhost:8000/api/users
 ```
 
-## License
+---
 
-Copyright © 2023 Devsu. All rights reserved.
+# Despliegue Kubernetes
+
+El despliegue fue validado localmente utilizando Minikube.
+
+Por tratarse de un entorno local, no se expone una URL pública.
+
+La validación se realizó mediante:
+
+- kubectl
+- curl
+- probes de Kubernetes
+- verificación de pods y servicios
+
+---
+
+# AWS ECR
+
+La imagen Docker es publicada automáticamente hacia AWS ECR mediante GitHub Actions.
+
+Repositorio ECR:
+
+```bash
+460210064623.dkr.ecr.us-east-1.amazonaws.com/demo-devops-nodejs
+```
+
+---
+
+# Consideraciones
+
+- Se utilizó SQLite como base de datos local.
+- Se agregaron healthchecks en Docker y Kubernetes.
+- Se implementaron readiness y liveness probes.
+- Se utilizaron buenas prácticas de contenedorización:
+  - usuario no root
+  - variables de entorno
+  - separación de responsabilidades
+  - ignore de archivos sensibles y temporales
+
+---
+
+# Repositorio
+
+GitHub:
+
+```bash
+https://github.com/marianoandrigo93/demo-devops-nodejs-mariano
+```
